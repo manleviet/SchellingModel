@@ -1,52 +1,55 @@
 from random import randint
 import datetime as dt
 from Grid import Grid
+from Scheduler import RandomActivation
+import matplotlib.pyplot as plt
 
-#from mesa.time import RandomActivation
 #from mesa.datacollection import DataCollector
 
-class SchellingAgent:
+class Agent:
     '''
     Schelling segregation agent
     '''
-    def __init__(self, unique_id, pos, model, agent_type):
+    # Khai bao type of agent
+    typeA = 0
+    typeB = 1
+
+    def __init__(self, id, pos, model, agent_type):
         '''
          Create a new Schelling agent.
 
          Args:
             unique_id: Unique identifier for the agent.
             x, y: Agent initial location.
-            agent_type: Indicator for the agent's type (A=0, B=1)
+            type: Indicator for the agent's type (A=0, B=1)
         '''
-        self.unique_id = unique_id
+        self.id = id
         self.pos = pos
         self.model = model
         self.type = agent_type
 
     def step(self):
-        similar = 0
-        for neighbor in self.model.grid.neighbors(self.pos):
-            if neighbor.type == self.type:
-                similar += 1
+        similarity = self.model.grid.get_similarity(self)
 
         # If unhappy, move:
-        if similar < self.model.homophily:
+        if similarity <= self.model.similarity:
             self.model.grid.move_to_empty(self)
         else:
             self.model.happy += 1
 
-class SchellingModel:
+class Model:
     '''
     Model class for the Schelling segregation model.
     '''
 
-    def __init__(self, width, height, density):
+    def __init__(self, width, height, density, similarity):
         self.width = width
         self.height = height
         num_agent = (int)(height * width * density / 2)
+        self.similarity = similarity
 
-        #self.schedule = RandomActivation(self)
-        self.grid = Grid(width, height)
+        self.schedule = RandomActivation(self)
+        self.grid = Grid(height, width)
 
         self.happy = 0
         '''
@@ -57,46 +60,54 @@ class SchellingModel:
         '''
         self.running = True
 
-        # if seed is None:
-        #     self.seed = dt.datetime.now()
-        # else:
-        #     self.seed = seed
-        # random.seed(seed)
-        # self.running = True
-        # self.schedule = None
-
         # Set up agents
-        # We use a grid iterator that returns
-        # the coordinates of a cell as well as
-        # its contents. (coord_iter)
-        for i in range(0, num_agent):
-            agent = SchellingAgent(i, (0, 0), self, 0)
-            self.grid.position_agent(agent)
-            # self.schedule.add(agent)
+        id = 0
+        id = self._create_agent(id, num_agent, Agent.typeA)
+        id = self._create_agent(id, num_agent, Agent.typeB)
 
-        for i in range(0, num_agent):
-            agent = SchellingAgent(i, (0, 0), self, 1)
-            self.grid.position_agent(agent)
-            # self.schedule.add(agent)
+    def _create_agent(self, startid, num, type):
+        id = startid
+        for i in range(0, num):
+            agent = Agent(id, (0, 0), self, type)
+            id = id + 1
+            self.grid.add_agent(agent)
+            self.schedule.add(agent)
+        return id
 
-    # def step(self):
-    #     '''
-    #     Run one step of the model. If All agents are happy, halt the model.
-    #     '''
-    #     self.happy = 0  # Reset counter of happy agents
-    #     self.schedule.step()
-    #     self.datacollector.collect(self)
-    #
-    #     if self.happy == self.schedule.get_agent_count():
-    #         self.running = False
+    def step(self):
+        '''
+        Run one step of the model. If All agents are happy, halt the model.
+        '''
+        self.happy = 0  # Reset counter of happy agents
+        self.schedule.step()
+        #self.print_grid()
+        self.plot_grid()
+        #self.datacollector.collect(self)
 
-model = SchellingModel(5, 5, 0.8)
-for cell in model.grid.coord_iter():
-    agent = cell[0]
-    x = cell[1]
-    y = cell[2]
-    if agent == None:
-        agent_type = -1
-    else:
-        agent_type = agent.type
-    print('{} {} {}'.format(x, y, agent_type))
+        print(self.happy)
+        if self.happy == self.schedule.get_agent_count():
+            self.running = False
+
+    def print_grid(self):
+        for cell in self.grid.coord_iter():
+            agent = cell[0]
+            x = cell[1]
+            y = cell[2]
+            if agent == None:
+                agent_type = -1
+            else:
+                agent_type = agent.type
+            print '{}  '.format(agent_type),
+            if y == model.width - 1:
+                print('\n')
+
+    def plot_grid(self):
+        plt.plot(self.grid)
+        plt.show()
+
+model = Model(100, 100, 0.8, 0.5)
+
+#model.print_grid()
+
+for i in range(20):
+    model.step()
