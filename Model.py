@@ -1,41 +1,6 @@
-from random import randint
-import datetime as dt
 from Grid import Grid
 from Scheduler import RandomActivation
-import matplotlib.pyplot as plt
-
-#from mesa.datacollection import DataCollector
-
-class Agent:
-    '''
-    Schelling segregation agent
-    '''
-    # Khai bao type of agent
-    typeA = 0
-    typeB = 1
-
-    def __init__(self, id, pos, model, agent_type):
-        '''
-         Create a new Schelling agent.
-
-         Args:
-            unique_id: Unique identifier for the agent.
-            x, y: Agent initial location.
-            type: Indicator for the agent's type (A=0, B=1)
-        '''
-        self.id = id
-        self.pos = pos
-        self.model = model
-        self.type = agent_type
-
-    def step(self):
-        similarity = self.model.grid.get_similarity(self)
-
-        # If unhappy, move:
-        if similarity <= self.model.similarity:
-            self.model.grid.move_to_empty(self)
-        else:
-            self.model.happy += 1
+from Agent import Agent
 
 class Model:
     '''
@@ -45,25 +10,20 @@ class Model:
     def __init__(self, width, height, density, similarity):
         self.width = width
         self.height = height
-        num_agent = (int)(height * width * density / 2)
-        self.similarity = similarity
+        num_agent = (int)(height * width * density / 2) # so agent moi loai, chua ra 20% empty cell
+        self.similarity = similarity # muc do tuong tu
 
         self.schedule = RandomActivation(self)
         self.grid = Grid(height, width)
 
         self.happy = 0
-        '''
-        self.datacollector = DataCollector(
-            {"happy": lambda m: m.happy},  # Model-level count of happy agents
-            # For testing purposes, agent's individual x and y
-            {"x": lambda a: a.pos[0], "y": lambda a: a.pos[1]})
-        '''
         self.running = True
 
         # Set up agents
         id = 0
         id = self._create_agent(id, num_agent, Agent.typeA)
         id = self._create_agent(id, num_agent, Agent.typeB)
+        self.grid.cal_happiness() # tinh initial happiness
 
     def _create_agent(self, startid, num, type):
         id = startid
@@ -80,34 +40,28 @@ class Model:
         '''
         self.happy = 0  # Reset counter of happy agents
         self.schedule.step()
-        #self.print_grid()
-        self.plot_grid()
-        #self.datacollector.collect(self)
 
-        print(self.happy)
         if self.happy == self.schedule.get_agent_count():
             self.running = False
 
+    def plot_grid(self, savefile=False, filename=None):
+        self.grid.plot_grid(self.happy, savefile, filename)
+
+    def plot_happiness(self, filename):
+        self.grid.plot_happiness(self.happy, filename)
+
+    def is_happy(self): # model da happy roi thi dung lai
+        return not self.running
+
+    # it's just for test purpose
     def print_grid(self):
         for cell in self.grid.coord_iter():
             agent = cell[0]
-            x = cell[1]
             y = cell[2]
             if agent == None:
                 agent_type = -1
             else:
                 agent_type = agent.type
             print '{}  '.format(agent_type),
-            if y == model.width - 1:
+            if y == self.width - 1:
                 print('\n')
-
-    def plot_grid(self):
-        plt.plot(self.grid)
-        plt.show()
-
-model = Model(100, 100, 0.8, 0.5)
-
-#model.print_grid()
-
-for i in range(20):
-    model.step()

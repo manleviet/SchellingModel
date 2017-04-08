@@ -1,6 +1,5 @@
 import random
 
-
 class BaseScheduler:
     """ Simplest scheduler; activates agents one at a time, in the order
     they were added.
@@ -11,15 +10,11 @@ class BaseScheduler:
 
     """
     model = None
-    steps = 0
-    time = 0
     agents = []
 
     def __init__(self, model):
         """ Create a new, empty BaseScheduler. """
         self.model = model
-        self.steps = 0
-        self.time = 0
         self.agents = []
 
     def add(self, agent):
@@ -46,8 +41,6 @@ class BaseScheduler:
         """ Execute the step of all the agents, one at a time. """
         for agent in self.agents[:]:
             agent.step()
-        self.steps += 1
-        self.time += 1
 
     def get_agent_count(self):
         """ Returns the current number of agents in the queue. """
@@ -71,5 +64,3 @@ class RandomActivation(BaseScheduler):
         random.shuffle(self.agents)
         for agent in self.agents[:]:
             agent.step()
-        self.steps += 1
-        self.time += 1
